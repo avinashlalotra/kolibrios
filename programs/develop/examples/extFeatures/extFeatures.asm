@@ -1,12 +1,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;                                                  ;
-; FORK OF EXAMPLE APPLICATION Compile with FASM    ;
+; EXT4 FEATURES READER EXAMPLE APPLICATION         ;  Inspired from example.asm
 ;                                                  ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; This program will read the features bytes from an ext4 image
 ; Usage 
-; ./extFeatures 
+; ./extFeatures  fullPathOfImage
 ; 
 
 
@@ -24,7 +24,7 @@ dd START
 dd I_END
 dd MEM
 dd STACKTOP
-dd I_Param
+dd filename
 dd 0
 
 ; The code area
@@ -46,10 +46,16 @@ label_offset = 0x78
 
  
 START:                 
-        ; 1) Read the features from the ext4 image
+        ; Read the features from the ext4 image
         mov     eax, 70                 ; Function 70: File system operations
         mov     ebx, file_read          ; Pointer to the file_read struct
         mcall
+
+        ; skip label reading if error and store return code to display error message
+        mov [rd_err], eax
+        cmp [rd_err], 0
+        jnz skip_label
+        
 
         ; read label
         mov     eax, super_block_offset + label_offset
@@ -64,8 +70,15 @@ START:
         mov     ebx, file_read         
         mcall
 
+skip_label:
         ;Draw the window and display values
         call    draw_window             ; draw the window
+
+
+
+
+
+
  
 ; After the window is drawn, it's practical to have the main loop.
 ; Events are distributed from here.
@@ -137,9 +150,24 @@ draw_window:
         mcall
  
 
-
+        cmp [rd_err], 0
+        je read_success
+        mov     ebx, 25 * 65536 + 50    ;
+        mov     ecx, 0x224466
+        mov     edx, error_message
+        mov     esi, len_error_message
+        mov     eax, 4
+        mcall
+        mov     ebx, 200 * 65536 + 50    ;
+        mov     ecx, 0x224466
+        lea     edx, [filename]
+        mov     esi, 256
+        mov     eax, 4
+        mcall
+        jmp stop_drawing
         
         ; label
+read_success:
         mov     ebx, 25 * 65536 + 35    ;
         mov     ecx, 0x224466
         mov     edx, txt_label
@@ -154,7 +182,8 @@ draw_window:
         mcall
 
         ; Draw the text labels  ; 
-        ; Draw the feature values in hex for now. however we can map them to meaning full names too.
+        ; Draw the feature values in hex for now.
+        ; however we can map them to meaning full names too.
        
        ; compat
         mov     ebx, 25 * 65536 + 50    ;
@@ -199,8 +228,7 @@ draw_window:
         mov esi,0x00FF0000
         mcall
 
-        ; 
-        
+stop_drawing:
         mov     eax, 12                 ; function 12:tell os about windowdraw
         mov     ebx, 2                  ; 2, end of draw
         mcall
@@ -210,9 +238,6 @@ draw_window:
 ;  *********************************************
 ;  *************   DATA AREA   *****************
 ;  *********************************************
-;
-; Data can be freely mixed with code to any parts of the image.
-; Only the header information is required at the beginning of the image.
  
 title   db  "ext4 features reader", 0
 
@@ -227,8 +252,13 @@ len_ro_compat = $ - txt_ro_compat
 
 txt_label db "Label:", 0
 len_label = $ - txt_label
- 
-I_Param dd 0
+
+error_message db "Error reading file: ", 0
+len_error_message = $ - error_message
+
+; error code
+rd_err dd ?
+
 I_END:
         rb 4096
 align 16
@@ -253,27 +283,7 @@ file_read:
     db 0
     .name dd filename
 
-filename db "/hd0/1/DATA/EXT4.IMG", 0
+filename:
+        rb 256
 
 MEM:
-
-; The area after I_END is free for use as the application memory, 
-; just avoid the stack.
-;
-; Application memory structure, according to the used header, 1 Mb.
-;
-; 0x00000   - Start of compiled image
-; I_END     - End of compiled image           
-;
-;           + Free for use in the application
-;
-; STACKTOP  - Start of stack area               - defined in the header
-; STACKTOP-4096 - End of stack area
-;
-;           + Free for use in the application
-;
-; MEM       - End of freely useable memory      - defined in the header
-;
-; All of the the areas can be modified within the application with a
-; direct reference.
-; For example, mov [STACKTOP-1],byte 1 moves a byte above the stack area.
