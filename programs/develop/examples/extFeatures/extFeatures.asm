@@ -4,10 +4,9 @@
 ;                                                  ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; This program will read the features bytes from an ext4 image given in cmd line 
-; args in full path
+; This program will read the features bytes from an ext4 image
 ; Usage 
-; ./extFeatures /sys/ext4.img
+; ./extFeatures 
 ; 
 
 
@@ -144,7 +143,7 @@ draw_window:
         mov     ebx, 25 * 65536 + 35    ;
         mov     ecx, 0x224466
         mov     edx, txt_label
-        mov     esi, 12
+        mov     esi, len_label
         mov     eax, 4
         mcall
         mov eax,4
@@ -158,45 +157,45 @@ draw_window:
         ; Draw the feature values in hex for now. however we can map them to meaning full names too.
        
        ; compat
-        mov     ebx, 25 * 65536 + 65    ;
+        mov     ebx, 25 * 65536 + 50    ;
         mov     ecx, 0x224466
         mov     edx, txt_compat
-        mov     esi, 12
+        mov     esi, len_compat
         mov     eax, 4
         mcall
         mov eax,47
         mov ebx, (8 shl 16) + 0x0100
         mov ecx,[features.compat]
-        mov edx, 200*65536 + 65
+        mov edx, 200*65536 + 50
         mov esi,0x00FF0000
         mcall
 
         ; incompat
-        mov     ebx, 25 * 65536 + 95    
+        mov     ebx, 25 * 65536 + 65   
         mov     ecx, 0x224466
         mov     edx, txt_incompat
-        mov     esi, 18
+        mov     esi, len_incompat
         mov     eax, 4
         mcall
         mov eax,47
         mov ebx, (8 shl 16) + 0x0100
         mov ecx,[features.incompat]
-        mov edx, 200*65536 + 95
+        mov edx, 200*65536 + 65
         mov esi,0x00FF0000
         mcall
 
 
         ; ro_compat
-        mov     ebx, 25 * 65536 + 125  
+        mov     ebx, 25 * 65536 + 80  
         mov     ecx, 0x224466
         mov     edx, txt_ro_compat
-        mov     esi, 19
+        mov     esi, len_ro_compat
         mov     eax, 4
         mcall
         mov eax,47
         mov ebx, (8 shl 16) + 0x0100
         mov ecx,[features.ro_compat]
-        mov edx, 200*65536 + 125
+        mov edx, 200*65536 + 80
         mov esi,0x00FF0000
         mcall
 
@@ -216,10 +215,18 @@ draw_window:
 ; Only the header information is required at the beginning of the image.
  
 title   db  "ext4 features reader", 0
+
 txt_compat db "Compat Features:", 0
+len_compat = $ - txt_compat
+
 txt_incompat db "Incompat Features:", 0
+len_incompat = $ - txt_incompat
+
 txt_ro_compat db "RO Compat Features:", 0
+len_ro_compat = $ - txt_ro_compat
+
 txt_label db "Label:", 0
+len_label = $ - txt_label
  
 I_Param dd 0
 I_END:
@@ -246,7 +253,7 @@ file_read:
     db 0
     .name dd filename
 
-filename db "/kolibrios/DVELOP/EXAMPLES/ext4.img", 0
+filename db "/hd0/1/DATA/EXT4.IMG", 0
 
 MEM:
 
