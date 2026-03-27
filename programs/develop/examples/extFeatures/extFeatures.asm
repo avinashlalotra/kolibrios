@@ -24,7 +24,7 @@ dd START
 dd I_END
 dd MEM
 dd STACKTOP
-dd filename
+dd 0
 dd 0
 
 ; The code area
@@ -42,6 +42,12 @@ super_block_offset = 1024
 features_offset = 0x5C
 num_of_bytes_in_feature_mask = 12; 3*4
 label_offset = 0x78
+
+
+xsize = 800
+ysize = 800
+
+include './helper.inc'
 
 
  
@@ -140,8 +146,8 @@ draw_window:
         mcall
  
         mov     eax, 0                  ; function 0 : define and draw window
-        mov     ebx, 100 * 65536 + 300  ; [x start] *65536 + [x size]
-        mov     ecx, 100 * 65536 + 120  ; [y start] *65536 + [y size]
+        mov     ebx, 100 * 65536 + xsize  ; [x start] *65536 + [x size]
+        mov     ecx, 100 * 65536 + ysize  ; [y start] *65536 + [y size]
         mov     edx, 0x14ffffff         ; color of work area RRGGBB
                                         ; 0x02000000 = window type 4 (fixed size, skinned window)
         mov     esi, 0x808899ff         ; color of grab bar  RRGGBB
@@ -168,17 +174,21 @@ draw_window:
         
         ; label
 read_success:
-        mov     ebx, 25 * 65536 + 35    ;
+        call set_position
+        mov     ebx, eax
         mov     ecx, 0x224466
         mov     edx, txt_label
         mov     esi, len_label
         mov     eax, 4
         mcall
-        mov eax,4
-        mov ebx,200*65536 + 35
-        mov ecx,0x224466
-        lea edx, [extlabel]
-        mov esi,16
+
+        mov dword [cursor_x],200
+        call set_position
+        mov     ebx, eax
+        mov     ecx, 0x224466
+        lea     edx, [extlabel]
+        mov     eax, 4
+        mov     esi,16
         mcall
 
         ; Draw the text labels  ; 
@@ -186,47 +196,104 @@ read_success:
         ; however we can map them to meaning full names too.
        
        ; compat
-        mov     ebx, 25 * 65536 + 50    ;
+        mov dword [cursor_x],25
+        mov dword [cursor_y],50
+        call set_position
+        mov     ebx, eax
         mov     ecx, 0x224466
         mov     edx, txt_compat
         mov     esi, len_compat
         mov     eax, 4
         mcall
-        mov eax,47
-        mov ebx, (8 shl 16) + 0x0100
-        mov ecx,[features.compat]
-        mov edx, 200*65536 + 50
-        mov esi,0x00FF0000
+        
+        ; compat value
+        mov dword [cursor_x],200
+        call set_position
+        mov     edx, eax
+        mov     ebx, (8 shl 16) + 0x0100
+        mov     ecx,[features.compat]
+        mov     eax, 47
+        mov     esi,16
         mcall
 
+        ; compat names
+        mov dword [cursor_x],150
+        mov dword [cursor_y],70
+        call set_position
+        mov edi,[features.compat]
+        mov esi,compat_table
+        call iterate_features
+
+
+
         ; incompat
-        mov     ebx, 25 * 65536 + 65   
+        mov dword [cursor_x],25
+        mov ebx,[cursor_y]
+        add ebx,15
+        mov dword [cursor_y],ebx
+
+        call set_position
+        mov     ebx, eax
         mov     ecx, 0x224466
         mov     edx, txt_incompat
         mov     esi, len_incompat
         mov     eax, 4
         mcall
-        mov eax,47
+
+        ; incompat value
+        mov dword [cursor_x],200
+        call set_position
+        mov edx, eax
         mov ebx, (8 shl 16) + 0x0100
         mov ecx,[features.incompat]
-        mov edx, 200*65536 + 65
         mov esi,0x00FF0000
+        mov eax,47
         mcall
+
+        ; incompat names
+        mov dword [cursor_x],100
+        mov ebx,[cursor_y]
+        add ebx,15
+        mov dword [cursor_y],ebx
+
+        mov edi,[features.incompat]
+        mov esi,incompat_table
+        call iterate_features
 
 
         ; ro_compat
-        mov     ebx, 25 * 65536 + 80  
+        mov dword [cursor_x],25
+        mov ebx,[cursor_y]
+        add ebx,15
+        mov dword [cursor_y],ebx
+
+        call set_position
+        mov     ebx, eax
         mov     ecx, 0x224466
         mov     edx, txt_ro_compat
         mov     esi, len_ro_compat
         mov     eax, 4
         mcall
+
+        ; ro_compat value
+        mov dword [cursor_x],200
+        call set_position
+        mov edx, eax
         mov eax,47
         mov ebx, (8 shl 16) + 0x0100
         mov ecx,[features.ro_compat]
-        mov edx, 200*65536 + 80
         mov esi,0x00FF0000
         mcall
+
+        ; ro_compat names
+        mov dword [cursor_x],100
+        mov ebx,[cursor_y]
+        add ebx,15
+        mov dword [cursor_y],ebx
+
+        mov edi,[features.ro_compat]
+        mov esi,ro_compat_table
+        call iterate_features
 
 stop_drawing:
         mov     eax, 12                 ; function 12:tell os about windowdraw
@@ -258,6 +325,8 @@ len_error_message = $ - error_message
 
 ; error code
 rd_err dd ?
+cursor_x dd 25
+cursor_y dd 35
 
 I_END:
         rb 4096
@@ -283,7 +352,10 @@ file_read:
     db 0
     .name dd filename
 
-filename:
-        rb 256
+filename db "/hd0/1/data/ext4.img",0
+
+
+
+include "./table.inc"
 
 MEM:
