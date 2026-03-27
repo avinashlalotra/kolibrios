@@ -24,7 +24,7 @@ dd START
 dd I_END
 dd MEM
 dd STACKTOP
-dd 0
+dd filename
 dd 0
 
 ; The code area
@@ -251,7 +251,7 @@ read_success:
         mcall
 
         ; incompat names
-        mov dword [cursor_x],100
+        mov dword [cursor_x],150
         mov ebx,[cursor_y]
         add ebx,15
         mov dword [cursor_y],ebx
@@ -286,7 +286,7 @@ read_success:
         mcall
 
         ; ro_compat names
-        mov dword [cursor_x],100
+        mov dword [cursor_x],150
         mov ebx,[cursor_y]
         add ebx,15
         mov dword [cursor_y],ebx
@@ -352,7 +352,8 @@ file_read:
     db 0
     .name dd filename
 
-filename db "/hd0/1/data/ext4.img",0
+filename:
+        rb 256
 
 
 

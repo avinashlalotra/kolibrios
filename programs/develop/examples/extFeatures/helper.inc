@@ -1,6 +1,6 @@
 
 ;------------------------------------------------------- 
-; we can make a table <mask,string_pointer>  End Of Table is 0
+; we can iterate the table <mask,string_pointer>  End Of Table is 0
 ; for each feature_mask iterate the table and print the string if the bit is set
 ; 
 
@@ -20,10 +20,10 @@ iterate_features:
     test edi, ebx
     jz .next                ; skip if not set
 
-    push edi
+    pusha
     mov edi, esi      ; string ptr
     call print_pair
-    pop edi
+    popa
 
     inc ecx
 
@@ -57,7 +57,7 @@ print_pair:
     mov [cursor_x], ebx
     call set_position
     mov ebx, eax
-    mov ecx, 0x800000
+    mov ecx, 0x80000000
     mov edx, [edi+4] ; string ptr
     mov eax, 4
     mcall
